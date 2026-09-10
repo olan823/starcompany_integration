@@ -1,0 +1,1 @@
+# Starcompany module package.
