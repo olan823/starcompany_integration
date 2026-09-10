@@ -26,7 +26,9 @@ def _require_access():
 
 
 def _request_id():
-    return frappe.get_request_header("X-Request-ID") or str(uuid.uuid4())
+    if getattr(frappe.local, "request", None):
+        return frappe.get_request_header("X-Request-ID") or str(uuid.uuid4())
+    return str(uuid.uuid4())
 
 
 def _settings():
