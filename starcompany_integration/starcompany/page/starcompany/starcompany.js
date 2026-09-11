@@ -54,7 +54,7 @@ frappe.pages["starcompany"].on_page_load = function (wrapper) {
 			'<div class="text-muted">' + frappe.utils.escape_html(user.full_name || user.email) + "</div></div>" +
 			'<div class="form-dashboard-section"><div class="section-head">' + __("Authorization pools") + "</div>" +
 			'<div class="flex mb-3"><input class="form-control starcompany-pool-search" placeholder="' + __("Search by name") + '"><button class="btn btn-primary ml-2 starcompany-pool-submit">' + __("Search") + "</button></div>" +
-			       '<div class="starcompany-pool-results"></div></div></div></div>'
+			'<div class="starcompany-pool-results"></div></div></div></div>'
 		);
 		content.on("click", ".starcompany-pool-submit", () => loadPools(1));
 		content.on("click", ".starcompany-pool-previous", () => loadPools(currentPage - 1));
