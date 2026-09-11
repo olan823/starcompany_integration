@@ -5,7 +5,7 @@ frappe.pages["starcompany"].on_page_load = function (wrapper) {
 		single_column: true,
 	});
 
-	const content = $('<div class="starcompany-integration"></div>').appendTo(page.body);
+	const content = $('<div class="starcompany-integration"></div>').appendTo(page.main);
 	let currentPage = 1;
 
 	function renderError() {
