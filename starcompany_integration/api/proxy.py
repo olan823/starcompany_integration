@@ -1,6 +1,7 @@
 import json
 import time
 import uuid
+from urllib.parse import urlencode
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -119,3 +120,28 @@ def health_check():
     if not health_path:
         frappe.throw(_("Starcompany health check is not configured."), StarcompanyProxyError)
     return request("GET", health_path)
+
+
+@frappe.whitelist()
+def authorization_pools(page=1, page_size=20, name=None, platform=None):
+    _require_access()
+
+    try:
+        page = int(page)
+        page_size = int(page_size)
+    except (TypeError, ValueError):
+        frappe.throw(_("Pagination values must be integers."), StarcompanyProxyError)
+
+    if page < 1 or page_size < 1 or page_size > 100:
+        frappe.throw(_("Invalid pagination values."), StarcompanyProxyError)
+
+    params = {"page": page, "page_size": page_size}
+    if name:
+        params["name"] = str(name)
+    if platform not in (None, ""):
+        try:
+            params["platform"] = int(platform)
+        except (TypeError, ValueError):
+            frappe.throw(_("Platform must be an integer."), StarcompanyProxyError)
+
+    return request("GET", "/api/erpnext/authorization-pools?" + urlencode(params))
