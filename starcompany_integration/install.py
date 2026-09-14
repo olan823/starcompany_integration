@@ -5,6 +5,7 @@ import frappe
 
 ROLE_NAME = "Starcompany User"
 WORKSPACE_NAME = "Starcompany"
+PAGE_URL = "/app/starcompany"
 
 
 def after_install():
@@ -31,17 +32,22 @@ def ensure_module_def():
 
 
 def ensure_workspace():
-    if frappe.db.exists("Workspace", WORKSPACE_NAME):
-        return
-
     content = json.dumps(
         [
-            {"id": "starcompany-shortcuts", "type": "shortcut", "data": {"shortcut_name": "Starcompany", "type": "URL", "url": "/app/starcompany"}},
+            {
+                "id": "starcompany-shortcuts",
+                "type": "shortcut",
+                "data": {"shortcut_name": WORKSPACE_NAME, "type": "URL", "url": PAGE_URL},
+            },
         ]
     )
-    frappe.get_doc(
+    workspace = (
+        frappe.get_doc("Workspace", WORKSPACE_NAME)
+        if frappe.db.exists("Workspace", WORKSPACE_NAME)
+        else frappe.new_doc("Workspace")
+    )
+    workspace.update(
         {
-            "doctype": "Workspace",
             "label": WORKSPACE_NAME,
             "title": WORKSPACE_NAME,
             "module": "Starcompany",
@@ -49,6 +55,14 @@ def ensure_workspace():
             "public": 1,
             "is_hidden": 0,
             "content": content,
+            "shortcuts": [{"label": WORKSPACE_NAME, "type": "URL", "url": PAGE_URL}],
             "roles": [{"role": ROLE_NAME}, {"role": "System Manager"}],
         }
-    ).insert(ignore_permissions=True)
+    )
+
+    if workspace.is_new():
+        workspace.insert(ignore_permissions=True)
+    else:
+        workspace.save(ignore_permissions=True)
+
+    frappe.clear_cache(doctype="Workspace")

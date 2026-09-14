@@ -6,4 +6,5 @@ app_email = ""
 app_license = "MIT"
 
 after_install = "starcompany_integration.install.after_install"
+after_migrate = "starcompany_integration.install.ensure_workspace"
 after_uninstall = "starcompany_integration.install.after_uninstall"
