@@ -53,7 +53,7 @@ Set the shared secret interactively and restrict the site configuration file per
 
 1. Confirm `Starcompany Integration` appears in `bench --site <site-name> list-apps`.
 2. Assign the `Starcompany User` role to one non-administrator test user.
-3. Confirm that user can open `/app/starcompany` and see the identity panel.
+3. Confirm that user can open `/app/starcompany-console` and see the identity panel.
 4. Confirm a user without that role receives a permission error for the page and for `starcompany_integration.api.proxy.current_user`.
 5. Invoke the health check only after Starcompany has deployed its endpoint:
 

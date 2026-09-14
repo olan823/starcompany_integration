@@ -1,4 +1,4 @@
-frappe.pages["starcompany"].on_page_load = function (wrapper) {
+frappe.pages["starcompany-console"].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({
 		parent: wrapper,
 		title: __("Starcompany"),
@@ -26,22 +26,22 @@ frappe.pages["starcompany"].on_page_load = function (wrapper) {
 			currentPage = pagination.page;
 			const rows = pools.map((pool) => (
 				"<tr>" +
-				"<td>" + frappe.utils.escape_html(pool.name) + "</td>" +
-				"<td>" + frappe.utils.escape_html(pool.platform_name) + "</td>" +
-				"<td>" + frappe.utils.escape_html((pool.supported_models || []).join(", ")) + "</td>" +
-				"<td class='text-right'>" + pool.used_count + " / " + pool.total_count + "</td>" +
-				"<td class='text-right'>" + pool.threshold + "</td>" +
-				"</tr>"
+					"<td>" + frappe.utils.escape_html(pool.name) + "</td>" +
+					"<td>" + frappe.utils.escape_html(pool.platform_name) + "</td>" +
+					"<td>" + frappe.utils.escape_html((pool.supported_models || []).join(", ")) + "</td>" +
+					"<td class='text-right'>" + pool.used_count + " / " + pool.total_count + "</td>" +
+					"<td class='text-right'>" + pool.threshold + "</td>" +
+					"</tr>"
 			)).join("") || '<tr><td colspan="5" class="text-muted text-center">' + __("No authorization pools found.") + "</td></tr>";
 
 			content.find(".starcompany-pool-results").html(
 				'<table class="table table-bordered">' +
-				"<thead><tr><th>" + __("Name") + "</th><th>" + __("Platform") + "</th><th>" + __("Supported models") + "</th><th class='text-right'>" + __("Used / total") + "</th><th class='text-right'>" + __("Threshold") + "</th></tr></thead>" +
-				"<tbody>" + rows + "</tbody></table>" +
-				'<div class="flex justify-between align-center">' +
-				'<span class="text-muted">' + __("{0} records", [pagination.total]) + "</span>" +
-				'<div><button class="btn btn-default btn-sm starcompany-pool-previous" ' + (pagination.page <= 1 ? "disabled" : "") + ">" + __("Previous") + "</button> " +
-				'<button class="btn btn-default btn-sm starcompany-pool-next" ' + (pagination.page >= pagination.last_page ? "disabled" : "") + ">" + __("Next") + "</button></div></div>"
+					"<thead><tr><th>" + __("Name") + "</th><th>" + __("Platform") + "</th><th>" + __("Supported models") + "</th><th class='text-right'>" + __("Used / total") + "</th><th class='text-right'>" + __("Threshold") + "</th></tr></thead>" +
+					"<tbody>" + rows + "</tbody></table>" +
+					'<div class="flex justify-between align-center">' +
+					'<span class="text-muted">' + __("{0} records", [pagination.total]) + "</span>" +
+					'<div><button class="btn btn-default btn-sm starcompany-pool-previous" ' + (pagination.page <= 1 ? "disabled" : "") + ">" + __("Previous") + "</button> " +
+					'<button class="btn btn-default btn-sm starcompany-pool-next" ' + (pagination.page >= pagination.last_page ? "disabled" : "") + ">" + __("Next") + "</button></div></div>"
 			);
 		}).catch(renderError);
 	}

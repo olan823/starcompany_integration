@@ -5,7 +5,8 @@ import frappe
 
 ROLE_NAME = "Starcompany User"
 WORKSPACE_NAME = "Starcompany"
-PAGE_URL = "/app/starcompany"
+PAGE_NAME = "starcompany-console"
+LEGACY_PAGE_NAME = "starcompany"
 
 
 def after_install():
@@ -32,12 +33,15 @@ def ensure_module_def():
 
 
 def ensure_workspace():
+    if frappe.db.exists("Page", LEGACY_PAGE_NAME):
+        frappe.delete_doc("Page", LEGACY_PAGE_NAME, force=True, ignore_permissions=True)
+
     content = json.dumps(
         [
             {
                 "id": "starcompany-shortcuts",
                 "type": "shortcut",
-                "data": {"shortcut_name": WORKSPACE_NAME, "type": "URL", "url": PAGE_URL},
+                "data": {"shortcut_name": WORKSPACE_NAME},
             },
         ]
     )
@@ -55,7 +59,7 @@ def ensure_workspace():
             "public": 1,
             "is_hidden": 0,
             "content": content,
-            "shortcuts": [{"label": WORKSPACE_NAME, "type": "URL", "url": PAGE_URL}],
+            "shortcuts": [{"label": WORKSPACE_NAME, "type": "Page", "link_to": PAGE_NAME}],
             "roles": [{"role": ROLE_NAME}, {"role": "System Manager"}],
         }
     )

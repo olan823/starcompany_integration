@@ -7,9 +7,9 @@
  "modified": "2026-09-08 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Starcompany",
- "name": "starcompany",
+ "name": "starcompany-console",
  "owner": "Administrator",
- "page_name": "starcompany",
+ "page_name": "starcompany-console",
  "roles": [
   {
    "role": "Starcompany User"
