@@ -26,6 +26,12 @@ def _require_access():
         frappe.throw(_("You do not have permission to access Starcompany."), frappe.PermissionError)
 
 
+def _require_system_manager():
+    _require_access()
+    if "System Manager" not in frappe.get_roles(frappe.session.user):
+        frappe.throw(_("You do not have permission to view authorization pools."), frappe.PermissionError)
+
+
 def _request_id():
     if getattr(frappe.local, "request", None):
         return frappe.get_request_header("X-Request-ID") or str(uuid.uuid4())
@@ -124,7 +130,7 @@ def health_check():
 
 @frappe.whitelist()
 def authorization_pools(page=1, page_size=20, name=None, platform=None):
-    _require_access()
+    _require_system_manager()
 
     try:
         page = int(page)
@@ -145,3 +151,18 @@ def authorization_pools(page=1, page_size=20, name=None, platform=None):
             frappe.throw(_("Platform must be an integer."), StarcompanyProxyError)
 
     return request("GET", "/api/erpnext/authorization-pools?" + urlencode(params))
+
+
+@frappe.whitelist()
+def authorization_pool(pool_id):
+    _require_system_manager()
+
+    try:
+        pool_id = int(pool_id)
+    except (TypeError, ValueError):
+        frappe.throw(_("Authorization pool ID must be an integer."), StarcompanyProxyError)
+
+    if pool_id < 1:
+        frappe.throw(_("Invalid authorization pool ID."), StarcompanyProxyError)
+
+    return request("GET", f"/api/erpnext/authorization-pools/{pool_id}")

@@ -12,13 +12,39 @@ frappe.pages["starcompany-console"].on_page_load = function (wrapper) {
 		content.html('<div class="text-danger">' + __("Unable to load authorization pools.") + "</div>");
 	}
 
+	function showPool(poolId) {
+		frappe.call({
+			method: "starcompany_integration.api.proxy.authorization_pool",
+			args: { pool_id: poolId },
+		}).then((response) => {
+			const pool = response.message.data.data;
+			const escape = frappe.utils.escape_html;
+			const dialog = new frappe.ui.Dialog({
+				title: escape(pool.name),
+				fields: [{
+					fieldtype: "HTML",
+					fieldname: "details",
+					options:
+						'<table class="table table-bordered">' +
+						'<tbody><tr><th>' + __("Platform") + '</th><td>' + escape(pool.platform_name) + "</td></tr>" +
+						'<tr><th>' + __("Supported models") + '</th><td>' + escape((pool.supported_models || []).join(", ")) + "</td></tr>" +
+						'<tr><th>' + __("Used / total") + '</th><td>' + pool.used_count + " / " + pool.total_count + "</td></tr>" +
+						'<tr><th>' + __("Threshold") + '</th><td>' + pool.threshold + "</td></tr>" +
+						'<tr><th>' + __("Created at") + '</th><td>' + escape(pool.created_at || "") + "</td></tr></tbody></table>",
+				}],
+			});
+			dialog.show();
+		}).catch(() => frappe.msgprint(__("Unable to load authorization pool details.")));
+	}
+
 	function loadPools(pageNumber) {
 		const search = content.find(".starcompany-pool-search").val() || "";
+		const platform = content.find(".starcompany-pool-platform").val();
 		content.find(".starcompany-pool-results").html('<div class="text-muted">' + __("Loading...") + "</div>");
 
 		frappe.call({
 			method: "starcompany_integration.api.proxy.authorization_pools",
-			args: { page: pageNumber, page_size: 20, name: search },
+			args: { page: pageNumber, page_size: 20, name: search, platform },
 		}).then((response) => {
 			const payload = response.message.data.data;
 			const pools = payload.items;
@@ -31,12 +57,13 @@ frappe.pages["starcompany-console"].on_page_load = function (wrapper) {
 					"<td>" + frappe.utils.escape_html((pool.supported_models || []).join(", ")) + "</td>" +
 					"<td class='text-right'>" + pool.used_count + " / " + pool.total_count + "</td>" +
 					"<td class='text-right'>" + pool.threshold + "</td>" +
+					'<td><button class="btn btn-default btn-xs starcompany-pool-detail" data-pool-id="' + pool.id + '">' + __("Details") + "</button></td>" +
 					"</tr>"
-			)).join("") || '<tr><td colspan="5" class="text-muted text-center">' + __("No authorization pools found.") + "</td></tr>";
+			)).join("") || '<tr><td colspan="6" class="text-muted text-center">' + __("No authorization pools found.") + "</td></tr>";
 
 			content.find(".starcompany-pool-results").html(
 				'<table class="table table-bordered">' +
-					"<thead><tr><th>" + __("Name") + "</th><th>" + __("Platform") + "</th><th>" + __("Supported models") + "</th><th class='text-right'>" + __("Used / total") + "</th><th class='text-right'>" + __("Threshold") + "</th></tr></thead>" +
+					"<thead><tr><th>" + __("Name") + "</th><th>" + __("Platform") + "</th><th>" + __("Supported models") + "</th><th class='text-right'>" + __("Used / total") + "</th><th class='text-right'>" + __("Threshold") + "</th><th>" + __("Actions") + "</th></tr></thead>" +
 					"<tbody>" + rows + "</tbody></table>" +
 					'<div class="flex justify-between align-center">' +
 					'<span class="text-muted">' + __("{0} records", [pagination.total]) + "</span>" +
@@ -53,10 +80,13 @@ frappe.pages["starcompany-console"].on_page_load = function (wrapper) {
 			'<div class="form-dashboard-section"><div class="section-head">' + __("Identity") + "</div>" +
 			'<div class="text-muted">' + frappe.utils.escape_html(user.full_name || user.email) + "</div></div>" +
 			'<div class="form-dashboard-section"><div class="section-head">' + __("Authorization pools") + "</div>" +
-			'<div class="flex mb-3"><input class="form-control starcompany-pool-search" placeholder="' + __("Search by name") + '"><button class="btn btn-primary ml-2 starcompany-pool-submit">' + __("Search") + "</button></div>" +
+			'<div class="flex mb-3"><input class="form-control starcompany-pool-search" placeholder="' + __("Search by name") + '">' +
+			'<select class="form-control ml-2 starcompany-pool-platform"><option value="">' + __("All platforms") + '</option><option value="0">' + __("Xing Lock") + '</option><option value="1">' + __("Tuya") + '</option><option value="2">' + __("Tuya Intercom") + '</option><option value="3">' + __("Tencent Cloud") + '</option></select>' +
+			'<button class="btn btn-primary ml-2 starcompany-pool-submit">' + __("Search") + "</button></div>" +
 			'<div class="starcompany-pool-results"></div></div></div></div>'
 		);
 		content.on("click", ".starcompany-pool-submit", () => loadPools(1));
+		content.on("click", ".starcompany-pool-detail", (event) => showPool($(event.currentTarget).data("pool-id")));
 		content.on("click", ".starcompany-pool-previous", () => loadPools(currentPage - 1));
 		content.on("click", ".starcompany-pool-next", () => loadPools(currentPage + 1));
 		content.on("keydown", ".starcompany-pool-search", (event) => {
