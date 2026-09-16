@@ -19,19 +19,67 @@ frappe.pages["starcompany-console"].on_page_load = function (wrapper) {
 		}).then((response) => {
 			const pool = response.message.data.data;
 			const escape = frappe.utils.escape_html;
+			let idempotencyKey = null;
 			const dialog = new frappe.ui.Dialog({
 				title: escape(pool.name),
-				fields: [{
-					fieldtype: "HTML",
-					fieldname: "details",
-					options:
-						'<table class="table table-bordered">' +
-						'<tbody><tr><th>' + __("Platform") + '</th><td>' + escape(pool.platform_name) + "</td></tr>" +
-						'<tr><th>' + __("Supported models") + '</th><td>' + escape((pool.supported_models || []).join(", ")) + "</td></tr>" +
-						'<tr><th>' + __("Used / total") + '</th><td>' + pool.used_count + " / " + pool.total_count + "</td></tr>" +
-						'<tr><th>' + __("Threshold") + '</th><td>' + pool.threshold + "</td></tr>" +
-						'<tr><th>' + __("Created at") + '</th><td>' + escape(pool.created_at || "") + "</td></tr></tbody></table>",
-				}],
+				fields: [
+					{
+						fieldtype: "HTML",
+						fieldname: "details",
+						options:
+							'<table class="table table-bordered">' +
+							'<tbody><tr><th>' + __("Platform") + '</th><td>' + escape(pool.platform_name) + "</td></tr>" +
+							'<tr><th>' + __("Supported models") + '</th><td>' + escape((pool.supported_models || []).join(", ")) + "</td></tr>" +
+							'<tr><th>' + __("Used / total") + '</th><td>' + pool.used_count + " / " + pool.total_count + "</td></tr>" +
+							'<tr><th>' + __("Created at") + '</th><td>' + escape(pool.created_at || "") + "</td></tr></tbody></table>",
+					},
+					{
+						fieldtype: "Int",
+						fieldname: "threshold",
+						label: __("Threshold"),
+						reqd: 1,
+						default: pool.threshold,
+					},
+				],
+				primary_action_label: __("Update threshold"),
+				primary_action(values) {
+					if (values.threshold < 0) {
+						frappe.msgprint(__("Threshold cannot be negative."));
+						return;
+					}
+
+					frappe.confirm(
+						__("Change the threshold from {0} to {1}?", [pool.threshold, values.threshold]),
+						() => {
+							idempotencyKey = idempotencyKey || (
+								window.crypto && window.crypto.randomUUID
+									? window.crypto.randomUUID()
+									: `${Date.now()}-${Math.random().toString(36).slice(2)}`
+							);
+							const primaryButton = dialog.get_primary_btn();
+							primaryButton.prop("disabled", true);
+
+							frappe.call({
+								method: "starcompany_integration.api.proxy.update_authorization_pool_threshold",
+								args: {
+									pool_id: pool.id,
+									threshold: values.threshold,
+									idempotency_key: idempotencyKey,
+								},
+							}).then((updateResponse) => {
+								const result = updateResponse.message.data.data;
+								dialog.hide();
+								frappe.show_alert({
+									message: result.applied ? __("Threshold updated.") : __("Threshold is unchanged."),
+									indicator: "green",
+								});
+								loadPools(currentPage);
+							}).catch(() => {
+								frappe.msgprint(__("Unable to update the threshold. You can retry this dialog safely."));
+							}).finally(() => primaryButton.prop("disabled", false));
+						},
+					);
+				},
 			});
 			dialog.show();
 		}).catch(() => frappe.msgprint(__("Unable to load authorization pool details.")));

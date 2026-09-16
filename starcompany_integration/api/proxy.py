@@ -1,4 +1,5 @@
 import json
+import logging
 import time
 import uuid
 from urllib.parse import urlencode
@@ -26,10 +27,13 @@ def _require_access():
         frappe.throw(_("You do not have permission to access Starcompany."), frappe.PermissionError)
 
 
-def _require_system_manager():
+def _require_system_manager(action="view"):
     _require_access()
     if "System Manager" not in frappe.get_roles(frappe.session.user):
-        frappe.throw(_("You do not have permission to view authorization pools."), frappe.PermissionError)
+        frappe.throw(
+            _("You do not have permission to {0} authorization pools.").format(action),
+            frappe.PermissionError,
+        )
 
 
 def _request_id():
@@ -64,7 +68,9 @@ def _user_context(request_id):
 
 
 def _log_request(method, path, status_code, duration_ms, request_id):
-    frappe.logger("starcompany_integration").info(
+    logger = frappe.logger("starcompany_integration", allow_site=True)
+    logger.setLevel(logging.INFO)
+    logger.info(
         "starcompany_proxy method=%s path=%s status=%s duration_ms=%s user=%s request_id=%s",
         method,
         path,
@@ -75,7 +81,7 @@ def _log_request(method, path, status_code, duration_ms, request_id):
     )
 
 
-def request(method, path, payload=None):
+def request(method, path, payload=None, extra_headers=None):
     _require_access()
     method = method.upper()
     if method not in ALLOWED_METHODS:
@@ -94,6 +100,8 @@ def request(method, path, payload=None):
     }
     if shared_secret:
         headers["X-Starcompany-Proxy-Secret"] = shared_secret
+    if extra_headers:
+        headers.update(extra_headers)
 
     body = json.dumps(payload).encode("utf-8") if payload is not None else None
     upstream_request = Request(f"{base_url}{path}", data=body, headers=headers, method=method)
@@ -166,3 +174,29 @@ def authorization_pool(pool_id):
         frappe.throw(_("Invalid authorization pool ID."), StarcompanyProxyError)
 
     return request("GET", f"/api/erpnext/authorization-pools/{pool_id}")
+
+
+@frappe.whitelist()
+def update_authorization_pool_threshold(pool_id, threshold, idempotency_key):
+    _require_system_manager("update")
+
+    try:
+        pool_id = int(pool_id)
+        threshold = int(threshold)
+    except (TypeError, ValueError):
+        frappe.throw(_("Authorization pool ID and threshold must be integers."), StarcompanyProxyError)
+
+    idempotency_key = str(idempotency_key or "").strip()
+    if pool_id < 1:
+        frappe.throw(_("Invalid authorization pool ID."), StarcompanyProxyError)
+    if threshold < 0:
+        frappe.throw(_("Threshold cannot be negative."), StarcompanyProxyError)
+    if not idempotency_key or len(idempotency_key) > 128:
+        frappe.throw(_("Invalid idempotency key."), StarcompanyProxyError)
+
+    return request(
+        "PUT",
+        f"/api/erpnext/authorization-pools/{pool_id}/threshold",
+        {"threshold": threshold},
+        {"X-Idempotency-Key": idempotency_key},
+    )
