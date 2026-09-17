@@ -205,6 +205,58 @@ def authorization_pool(pool_id):
 
 
 @frappe.whitelist()
+def authorization_codes(pool_id, page=1, page_size=20, code=None, status=None):
+    _require_access()
+    pool_id = _positive_int(pool_id, _("authorization pool ID"))
+    page = _positive_int(page, _("page"))
+    page_size = _positive_int(page_size, _("page size"))
+    if page_size > 100:
+        frappe.throw(_("Page size cannot exceed 100."), StarcompanyProxyError)
+
+    params = {"page": page, "page_size": page_size}
+    if code:
+        code = str(code).strip()
+        if len(code) > 255:
+            frappe.throw(_("Authorization code search cannot exceed 255 characters."), StarcompanyProxyError)
+        params["code"] = code
+    if status not in (None, ""):
+        try:
+            status = int(status)
+        except (TypeError, ValueError):
+            frappe.throw(_("Authorization code status must be an integer."), StarcompanyProxyError)
+        if status not in (0, 1):
+            frappe.throw(_("Invalid authorization code status."), StarcompanyProxyError)
+        params["status"] = status
+
+    return request("GET", f"/api/erpnext/authorization-pools/{pool_id}/codes?" + urlencode(params))
+
+
+@frappe.whitelist()
+def add_authorization_codes(pool_id, codes, idempotency_key):
+    _require_system_manager("add authorization codes")
+    pool_id = _positive_int(pool_id, _("authorization pool ID"))
+    codes = _json_list(codes, _("Authorization codes"))
+    if len(codes) > 500:
+        frappe.throw(_("No more than 500 authorization codes can be added at once."), StarcompanyProxyError)
+
+    normalized_codes = []
+    for code in codes:
+        if not isinstance(code, str):
+            frappe.throw(_("Each authorization code must be text."), StarcompanyProxyError)
+        code = code.strip()
+        if not code or len(code) > 255:
+            frappe.throw(_("Each authorization code must contain 1 to 255 characters."), StarcompanyProxyError)
+        normalized_codes.append(code)
+
+    return request(
+        "POST",
+        f"/api/erpnext/authorization-pools/{pool_id}/codes",
+        {"codes": normalized_codes},
+        _write_headers(idempotency_key),
+    )
+
+
+@frappe.whitelist()
 def update_authorization_pool_threshold(pool_id, threshold, idempotency_key):
     _require_system_manager("update")
 
