@@ -1,5 +1,7 @@
 # Versioned Image Deployment Runbook
 
+For the repeatable Chinese production checklist used after every Company update, see [Company 增量更新标准流程](Company增量更新标准流程.md).
+
 ## Purpose
 
 Deploy `starcompany_integration` as an application baked into the ERPNext v16 image. This procedure changes only the `erpnext-prod` Compose project. It does not modify, stop, recreate, or attach networks to other Docker projects.

@@ -31,9 +31,37 @@ def _require_system_manager(action="view"):
     _require_access()
     if "System Manager" not in frappe.get_roles(frappe.session.user):
         frappe.throw(
-            _("You do not have permission to {0} authorization pools.").format(action),
+            _("You do not have permission to {0} Starcompany resources.").format(action),
             frappe.PermissionError,
         )
+
+
+def _positive_int(value, label):
+    try:
+        value = int(value)
+    except (TypeError, ValueError):
+        frappe.throw(_("{0} must be an integer.").format(label), StarcompanyProxyError)
+    if value < 1:
+        frappe.throw(_("Invalid {0}.").format(label), StarcompanyProxyError)
+    return value
+
+
+def _json_list(value, label):
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except ValueError:
+            frappe.throw(_("{0} must be a JSON list.").format(label), StarcompanyProxyError)
+    if not isinstance(value, list) or not value:
+        frappe.throw(_("{0} must not be empty.").format(label), StarcompanyProxyError)
+    return value
+
+
+def _write_headers(idempotency_key):
+    idempotency_key = str(idempotency_key or "").strip()
+    if not idempotency_key or len(idempotency_key) > 128:
+        frappe.throw(_("Invalid idempotency key."), StarcompanyProxyError)
+    return {"X-Idempotency-Key": idempotency_key}
 
 
 def _request_id():
@@ -138,7 +166,7 @@ def health_check():
 
 @frappe.whitelist()
 def authorization_pools(page=1, page_size=20, name=None, platform=None):
-    _require_system_manager()
+    _require_access()
 
     try:
         page = int(page)
@@ -163,7 +191,7 @@ def authorization_pools(page=1, page_size=20, name=None, platform=None):
 
 @frappe.whitelist()
 def authorization_pool(pool_id):
-    _require_system_manager()
+    _require_access()
 
     try:
         pool_id = int(pool_id)
@@ -200,3 +228,164 @@ def update_authorization_pool_threshold(pool_id, threshold, idempotency_key):
         {"threshold": threshold},
         {"X-Idempotency-Key": idempotency_key},
     )
+
+
+@frappe.whitelist()
+def products(page=1, page_size=20, name=None):
+    _require_access()
+    page = _positive_int(page, _("page"))
+    page_size = _positive_int(page_size, _("page size"))
+    if page_size > 100:
+        frappe.throw(_("Page size cannot exceed 100."), StarcompanyProxyError)
+    params = {"page": page, "page_size": page_size}
+    if name:
+        params["name"] = str(name)
+    return request("GET", "/api/erpnext/products?" + urlencode(params))
+
+
+@frappe.whitelist()
+def product(product_id):
+    _require_access()
+    return request("GET", f"/api/erpnext/products/{_positive_int(product_id, _('product ID'))}")
+
+
+@frappe.whitelist()
+def save_product(name, vendor, models, image="", manual="", product_id=None, idempotency_key=None):
+    _require_system_manager("manage products")
+    payload = {
+        "name": str(name or "").strip(),
+        "vendor": str(vendor or "").strip(),
+        "models": _json_list(models, _("Models")),
+        "image": str(image or "").strip(),
+        "manual": str(manual or "").strip(),
+    }
+    headers = _write_headers(idempotency_key)
+    if product_id in (None, ""):
+        return request("POST", "/api/erpnext/products", payload, headers)
+    product_id = _positive_int(product_id, _("product ID"))
+    return request("PUT", f"/api/erpnext/products/{product_id}", payload, headers)
+
+
+@frappe.whitelist()
+def delete_product(product_id, idempotency_key):
+    _require_system_manager("delete products")
+    product_id = _positive_int(product_id, _("product ID"))
+    return request("DELETE", f"/api/erpnext/products/{product_id}", {}, _write_headers(idempotency_key))
+
+
+@frappe.whitelist()
+def voice_pack_structures(page=1, page_size=20, name=None):
+    _require_access()
+    page = _positive_int(page, _("page"))
+    page_size = _positive_int(page_size, _("page size"))
+    if page_size > 100:
+        frappe.throw(_("Page size cannot exceed 100."), StarcompanyProxyError)
+    params = {"page": page, "page_size": page_size}
+    if name:
+        params["name"] = str(name)
+    return request("GET", "/api/erpnext/voice-pack-structures?" + urlencode(params))
+
+
+@frappe.whitelist()
+def voice_pack_structure(structure_id):
+    _require_access()
+    structure_id = _positive_int(structure_id, _("structure ID"))
+    return request("GET", f"/api/erpnext/voice-pack-structures/{structure_id}")
+
+
+@frappe.whitelist()
+def save_voice_pack_structure(name, product_ids, chip_type=None, structure_id=None, idempotency_key=None):
+    _require_system_manager("manage voice pack structures")
+    payload = {"name": str(name or "").strip(), "product_ids": _json_list(product_ids, _("Products"))}
+    headers = _write_headers(idempotency_key)
+    if structure_id in (None, ""):
+        payload["chip_type"] = str(chip_type or "").strip()
+        return request("POST", "/api/erpnext/voice-pack-structures", payload, headers)
+    structure_id = _positive_int(structure_id, _("structure ID"))
+    return request("PUT", f"/api/erpnext/voice-pack-structures/{structure_id}", payload, headers)
+
+
+@frappe.whitelist()
+def delete_voice_pack_structure(structure_id, idempotency_key):
+    _require_system_manager("delete voice pack structures")
+    structure_id = _positive_int(structure_id, _("structure ID"))
+    return request("DELETE", f"/api/erpnext/voice-pack-structures/{structure_id}", {}, _write_headers(idempotency_key))
+
+
+@frappe.whitelist()
+def voice_pack_languages(structure_id, lang=None):
+    _require_access()
+    structure_id = _positive_int(structure_id, _("structure ID"))
+    params = urlencode({"lang": str(lang)}) if lang else ""
+    suffix = f"?{params}" if params else ""
+    return request("GET", f"/api/erpnext/voice-pack-structures/{structure_id}/languages{suffix}")
+
+
+@frappe.whitelist()
+def voice_options(structure_id):
+    _require_access()
+    structure_id = _positive_int(structure_id, _("structure ID"))
+    return request("GET", f"/api/erpnext/voice-pack-structures/{structure_id}/voice-options")
+
+
+@frappe.whitelist()
+def add_voice_pack_language(structure_id, lang, idempotency_key):
+    _require_system_manager("add voice pack languages")
+    structure_id = _positive_int(structure_id, _("structure ID"))
+    return request("POST", f"/api/erpnext/voice-pack-structures/{structure_id}/languages", {"lang": str(lang)}, _write_headers(idempotency_key))
+
+
+@frappe.whitelist()
+def delete_voice_pack_language(language_id, idempotency_key):
+    _require_system_manager("delete voice pack languages")
+    language_id = _positive_int(language_id, _("language ID"))
+    return request("DELETE", f"/api/erpnext/voice-pack-languages/{language_id}", {}, _write_headers(idempotency_key))
+
+
+@frappe.whitelist()
+def add_voice_pack_timbres(language_id, timbres, idempotency_key):
+    _require_system_manager("add voice pack timbres")
+    language_id = _positive_int(language_id, _("language ID"))
+    return request("POST", f"/api/erpnext/voice-pack-languages/{language_id}/timbres", {"timbres": _json_list(timbres, _("Timbres"))}, _write_headers(idempotency_key))
+
+
+@frappe.whitelist()
+def delete_voice_pack_timbre(timbre_id, idempotency_key):
+    _require_system_manager("delete voice pack timbres")
+    timbre_id = _positive_int(timbre_id, _("timbre ID"))
+    return request("DELETE", f"/api/erpnext/voice-pack-timbres/{timbre_id}", {}, _write_headers(idempotency_key))
+
+
+@frappe.whitelist()
+def voice_pack_items(timbre_id):
+    _require_access()
+    timbre_id = _positive_int(timbre_id, _("timbre ID"))
+    return request("GET", f"/api/erpnext/voice-pack-timbres/{timbre_id}/items")
+
+
+@frappe.whitelist()
+def generate_voice_pack_item(item_id, idempotency_key):
+    _require_system_manager("generate voice")
+    item_id = _positive_int(item_id, _("item ID"))
+    return request("POST", f"/api/erpnext/voice-pack-items/{item_id}/generate", {}, _write_headers(idempotency_key))
+
+
+@frappe.whitelist()
+def generate_voice_pack_structure(structure_id, idempotency_key):
+    _require_system_manager("generate voice")
+    structure_id = _positive_int(structure_id, _("structure ID"))
+    return request("POST", f"/api/erpnext/voice-pack-structures/{structure_id}/generate", {}, _write_headers(idempotency_key))
+
+
+@frappe.whitelist()
+def voice_pack_generation(structure_id):
+    _require_access()
+    structure_id = _positive_int(structure_id, _("structure ID"))
+    return request("GET", f"/api/erpnext/voice-pack-structures/{structure_id}/generation")
+
+
+@frappe.whitelist()
+def sync_voice_pack_structure(structure_id, idempotency_key):
+    _require_system_manager("sync voice packs")
+    structure_id = _positive_int(structure_id, _("structure ID"))
+    return request("POST", f"/api/erpnext/voice-pack-structures/{structure_id}/sync", {}, _write_headers(idempotency_key))

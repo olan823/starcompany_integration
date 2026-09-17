@@ -5,8 +5,11 @@ import frappe
 
 ROLE_NAME = "Starcompany User"
 WORKSPACE_NAME = "Starcompany"
-SHORTCUT_LABEL = "授权池"
-PAGE_NAME = "starcompany-console"
+SHORTCUTS = [
+    ("授权池", "starcompany-console"),
+    ("产品管理", "starcompany-products"),
+    ("语言包管理", "starcompany-language-packs"),
+]
 LEGACY_PAGE_NAME = "starcompany"
 
 
@@ -40,10 +43,11 @@ def ensure_workspace():
     content = json.dumps(
         [
             {
-                "id": "starcompany-shortcuts",
+                "id": f"starcompany-shortcut-{index}",
                 "type": "shortcut",
-                "data": {"shortcut_name": SHORTCUT_LABEL},
-            },
+                "data": {"shortcut_name": label},
+            }
+            for index, (label, page_name) in enumerate(SHORTCUTS, start=1)
         ]
     )
     workspace = (
@@ -60,7 +64,10 @@ def ensure_workspace():
             "public": 1,
             "is_hidden": 0,
             "content": content,
-            "shortcuts": [{"label": SHORTCUT_LABEL, "type": "Page", "link_to": PAGE_NAME}],
+            "shortcuts": [
+                {"label": label, "type": "Page", "link_to": page_name}
+                for label, page_name in SHORTCUTS
+            ],
             "roles": [{"role": ROLE_NAME}, {"role": "System Manager"}],
         }
     )
