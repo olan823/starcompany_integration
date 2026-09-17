@@ -17,6 +17,29 @@ Deploy `starcompany_integration` as an application baked into the ERPNext v16 im
 
 The image build reads the app from Git. Files copied into a running container and uncommitted local changes are not part of an image.
 
+Use this same release path for every later Starcompany feature migration. Do not copy feature files into production containers as the normal deployment method:
+
+1. Implement and validate the feature in `starcompany_integration`.
+2. Commit and push the exact source state.
+3. Create a new immutable app tag and record its full commit SHA.
+4. Build only the Starcompany incremental image from the fixed ERPNext base image.
+5. Update the production environment file to the new image tag.
+6. Validate the resolved Compose images before deployment.
+7. Recreate only the ERPNext application services with the deployment script.
+8. Complete both server-side health checks and the Desk business verification.
+
+Keep internal identifiers stable unless a migration explicitly requires changing them. For example, the Workspace and module remain `Starcompany`, the route remains `/app/starcompany-console`, and display labels such as the `授权池` shortcut may change independently.
+
+Choose one new app version for each release and use it consistently in the Git tag and image tag. For example:
+
+```bash
+APP_VERSION=0.1.8
+APP_REF="v${APP_VERSION}"
+IMAGE_TAG="16.32.0-starcompany-${APP_VERSION}"
+```
+
+Never reuse or move an existing Git tag or image tag. The fixed ERPNext base image is rebuilt only when the pinned Frappe or ERPNext version changes.
+
 Commit and push the exact app state to deploy, create an immutable release tag, then record its full commit SHA:
 
 ```bash

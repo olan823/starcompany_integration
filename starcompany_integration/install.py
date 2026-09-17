@@ -5,6 +5,7 @@ import frappe
 
 ROLE_NAME = "Starcompany User"
 WORKSPACE_NAME = "Starcompany"
+SHORTCUT_LABEL = "授权池"
 PAGE_NAME = "starcompany-console"
 LEGACY_PAGE_NAME = "starcompany"
 
@@ -41,7 +42,7 @@ def ensure_workspace():
             {
                 "id": "starcompany-shortcuts",
                 "type": "shortcut",
-                "data": {"shortcut_name": WORKSPACE_NAME},
+                "data": {"shortcut_name": SHORTCUT_LABEL},
             },
         ]
     )
@@ -59,7 +60,7 @@ def ensure_workspace():
             "public": 1,
             "is_hidden": 0,
             "content": content,
-            "shortcuts": [{"label": WORKSPACE_NAME, "type": "Page", "link_to": PAGE_NAME}],
+            "shortcuts": [{"label": SHORTCUT_LABEL, "type": "Page", "link_to": PAGE_NAME}],
             "roles": [{"role": ROLE_NAME}, {"role": "System Manager"}],
         }
     )
