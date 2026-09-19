@@ -1,1 +1,1 @@
-recursive-include starcompany_integration *.json *.js *.py
+recursive-include starcompany_integration *.json *.js *.py *.svg

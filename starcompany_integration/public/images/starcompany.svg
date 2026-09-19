@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Starcompany">
+  <rect width="64" height="64" rx="14" fill="#1463D6"/>
+  <path d="M17 51V22l15-9 15 9v29H17Z" fill="#FFFFFF"/>
+  <path d="M12 51h40" fill="none" stroke="#A9D6FF" stroke-width="4" stroke-linecap="round"/>
+  <path d="M24 25h5v5h-5zm11 0h5v5h-5zM24 35h5v5h-5zm11 0h5v5h-5z" fill="#62B0F5"/>
+  <path d="M29 51V44h6v7" fill="#1463D6"/>
+</svg>
