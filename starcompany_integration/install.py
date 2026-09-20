@@ -220,11 +220,11 @@ def ensure_custom_workspace_dashboard_block():
 
 
 def ensure_dashboard_block():
-    block = (
-        frappe.get_doc("Custom HTML Block", DASHBOARD_BLOCK_NAME)
-        if frappe.db.exists("Custom HTML Block", DASHBOARD_BLOCK_NAME)
-        else frappe.get_doc({"doctype": "Custom HTML Block", "name": DASHBOARD_BLOCK_NAME})
-    )
+    if frappe.db.exists("Custom HTML Block", DASHBOARD_BLOCK_NAME):
+        block = frappe.get_doc("Custom HTML Block", DASHBOARD_BLOCK_NAME)
+    else:
+        block = frappe.new_doc("Custom HTML Block")
+        block.name = DASHBOARD_BLOCK_NAME
     block.update(
         {
             "private": 0,
