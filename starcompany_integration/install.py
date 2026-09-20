@@ -11,6 +11,9 @@ SHORTCUTS = [
     ("语言包管理", "starcompany-language-packs"),
 ]
 LEGACY_PAGE_NAME = "starcompany"
+APP_NAME = "starcompany_integration"
+APP_LOGO_URL = "/assets/starcompany_integration/images/starcompany.svg"
+APP_HOME = "/app/starcompany"
 
 
 def after_install():
@@ -31,12 +34,14 @@ def ensure_role():
 
 def ensure_module_def():
     if not frappe.db.exists("Module Def", "Starcompany"):
-        frappe.get_doc({"doctype": "Module Def", "module_name": "Starcompany", "app_name": "starcompany_integration"}).insert(
+        frappe.get_doc({"doctype": "Module Def", "module_name": "Starcompany", "app_name": APP_NAME}).insert(
             ignore_permissions=True
         )
 
 
 def ensure_workspace():
+    ensure_desktop_icon()
+
     if frappe.db.exists("Page", LEGACY_PAGE_NAME):
         frappe.delete_doc("Page", LEGACY_PAGE_NAME, force=True, ignore_permissions=True)
 
@@ -78,3 +83,44 @@ def ensure_workspace():
         workspace.save(ignore_permissions=True)
 
     frappe.clear_cache(doctype="Workspace")
+
+
+def ensure_desktop_icon():
+    app_icon_names = frappe.get_all(
+        "Desktop Icon",
+        filters={"app": APP_NAME, "icon_type": "App"},
+        pluck="name",
+        order_by="creation asc",
+    )
+    matching_icon_names = frappe.get_all(
+        "Desktop Icon", filters={"label": WORKSPACE_NAME}, pluck="name", order_by="creation asc"
+    )
+    icon_name = app_icon_names[0] if app_icon_names else None
+    icon_name = icon_name or (matching_icon_names[0] if matching_icon_names else None)
+
+    for duplicate_name in dict.fromkeys([*app_icon_names, *matching_icon_names]):
+        if duplicate_name != icon_name:
+            frappe.delete_doc("Desktop Icon", duplicate_name, force=True, ignore_permissions=True)
+
+    icon = (
+        frappe.get_doc("Desktop Icon", icon_name) if icon_name else frappe.new_doc("Desktop Icon")
+    )
+    icon.update(
+        {
+            "label": WORKSPACE_NAME,
+            "link_type": "External",
+            "icon_type": "App",
+            "app": APP_NAME,
+            "link": APP_HOME,
+            "logo_url": APP_LOGO_URL,
+        }
+    )
+
+    if icon.is_new():
+        icon.insert(ignore_permissions=True)
+    else:
+        icon.save(ignore_permissions=True)
+
+    frappe.cache.delete_key("desktop_icons")
+    frappe.cache.delete_key("bootinfo")
+
