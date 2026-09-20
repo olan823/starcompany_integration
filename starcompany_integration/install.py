@@ -109,6 +109,7 @@ def ensure_desktop_icon():
         {
             "label": WORKSPACE_NAME,
             "link_type": "External",
+            "link_to": None,
             "icon_type": "App",
             "app": APP_NAME,
             "link": APP_HOME,
