@@ -186,7 +186,6 @@ def ensure_workspace():
         workspace.save(ignore_permissions=True)
 
     ensure_custom_workspace_dashboard_block()
-    ensure_sidebar()
     frappe.clear_cache(doctype="Workspace")
 
 
@@ -238,46 +237,6 @@ def ensure_dashboard_block():
         block.insert(ignore_permissions=True)
     else:
         block.save(ignore_permissions=True)
-
-
-def ensure_sidebar():
-    sidebar_name = frappe.db.exists("Sidebar", {"module": WORKSPACE_NAME})
-    sidebar = (
-        frappe.get_doc("Sidebar", sidebar_name) if sidebar_name else frappe.new_doc("Sidebar")
-    )
-    sidebar.update(
-        {
-            "module": WORKSPACE_NAME,
-            "title": WORKSPACE_NAME,
-            "header_icon": "organization",
-            "standard": 0,
-        }
-    )
-    sidebar.set("items", [])
-    sidebar.append(
-        "items",
-        {
-            "type": "Link",
-            "label": "Home",
-            "link_type": "Workspace",
-            "link_to": WORKSPACE_NAME,
-        },
-    )
-    for label, page_name in SHORTCUTS:
-        sidebar.append(
-            "items",
-            {
-                "type": "Link",
-                "label": label,
-                "link_type": "Page",
-                "link_to": page_name,
-            },
-        )
-
-    if sidebar.is_new():
-        sidebar.insert(ignore_permissions=True)
-    else:
-        sidebar.save(ignore_permissions=True)
 
 
 def ensure_desktop_icon():
