@@ -165,6 +165,12 @@ def health_check():
 
 
 @frappe.whitelist()
+def dashboard_stats():
+    _require_access()
+    return request("GET", "/api/erpnext/dashboard-stats")
+
+
+@frappe.whitelist()
 def authorization_pools(page=1, page_size=20, name=None, platform=None):
     _require_access()
 
