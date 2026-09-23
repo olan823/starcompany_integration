@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="starcompany_integration",
-    version="0.1.1",
+    version="0.1.18",
     description="Native ERPNext integration boundary for Starcompany",
     author="Skychip",
     packages=find_packages(),

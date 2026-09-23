@@ -5,9 +5,17 @@
 ## Scope
 
 - The browser calls Frappe only.
-- Frappe forwards a restricted read-only health request to Starcompany.
+- Frappe forwards restricted requests to Starcompany for dashboard, authorization pool,
+  product, language pack, and IoT card operations.
 - Starcompany remains the owner of all business data and business rules.
 - No client secret, bearer token, or Starcompany database connection is exposed to browser code.
+
+## IoT Card Query
+
+The `物联网卡` Workspace shortcut opens `/app/starcompany-iot-card`. Users with the
+`Starcompany User` or `System Manager` role can query card status, data balance, and
+available packages. The carrier credentials remain in the Starcompany service and are
+never sent to Frappe or the browser.
 
 ## Site Configuration
 

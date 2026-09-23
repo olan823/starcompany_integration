@@ -171,6 +171,15 @@ def dashboard_stats():
 
 
 @frappe.whitelist()
+def iot_card(card_number):
+    _require_access()
+    card_number = str(card_number or "").strip()
+    if not card_number or len(card_number) > 100:
+        frappe.throw(_("IoT card number must contain 1 to 100 characters."), StarcompanyProxyError)
+    return request("POST", "/api/erpnext/iot-card/query", {"card_number": card_number})
+
+
+@frappe.whitelist()
 def authorization_pools(page=1, page_size=20, name=None, platform=None):
     _require_access()
 

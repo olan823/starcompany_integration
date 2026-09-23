@@ -9,6 +9,7 @@ SHORTCUTS = [
     ("授权池", "starcompany-console"),
     ("产品管理", "starcompany-products"),
     ("语言包管理", "starcompany-language-packs"),
+    ("物联网卡", "starcompany-iot-card"),
 ]
 LEGACY_PAGE_NAME = "starcompany"
 APP_NAME = "starcompany_integration"
@@ -185,11 +186,11 @@ def ensure_workspace():
     else:
         workspace.save(ignore_permissions=True)
 
-    ensure_custom_workspace_dashboard_block()
+    ensure_custom_workspace_content()
     frappe.clear_cache(doctype="Workspace")
 
 
-def ensure_custom_workspace_dashboard_block():
+def ensure_custom_workspace_content():
     customization_name = frappe.db.exists("Custom Workspace", {"workspace": WORKSPACE_NAME})
     if not customization_name:
         return
@@ -199,23 +200,45 @@ def ensure_custom_workspace_dashboard_block():
         return
 
     content = frappe.parse_json(customization.content)
-    if any(
+    changed = False
+    if not any(
         block.get("type") == "custom_block"
         and block.get("data", {}).get("custom_block_name") == DASHBOARD_BLOCK_NAME
         for block in content
     ):
-        return
+        content.insert(
+            0,
+            {
+                "id": "starcompany-dashboard-statistics",
+                "type": "custom_block",
+                "data": {"custom_block_name": DASHBOARD_BLOCK_NAME, "col": 12},
+            },
+        )
+        changed = True
 
-    content.insert(
-        0,
-        {
-            "id": "starcompany-dashboard-statistics",
-            "type": "custom_block",
-            "data": {"custom_block_name": DASHBOARD_BLOCK_NAME, "col": 12},
-        },
-    )
-    customization.content = json.dumps(content)
-    customization.save(ignore_permissions=True)
+    existing_ids = {block.get("id") for block in content}
+    existing_labels = {
+        block.get("data", {}).get("shortcut_name")
+        for block in content
+        if block.get("type") == "shortcut"
+    }
+    for index, (label, page_name) in reversed(list(enumerate(SHORTCUTS, start=1))):
+        shortcut_id = f"starcompany-shortcut-{index}"
+        if shortcut_id in existing_ids or label in existing_labels:
+            continue
+        content.insert(
+            1,
+            {
+                "id": shortcut_id,
+                "type": "shortcut",
+                "data": {"shortcut_name": label, "col": 4},
+            },
+        )
+        changed = True
+
+    if changed:
+        customization.content = json.dumps(content)
+        customization.save(ignore_permissions=True)
 
 
 def ensure_dashboard_block():
